@@ -7,70 +7,142 @@ namespace Compression.LZString.CSharp
 {
     class StreamBitReader
     {
-        private Stream UnderlyingStream;
+        private IEnumerable<char> UnderlyingStream;
 
-        private byte Buffer;
+        private int BitsPerChar;
 
-        private int Position;
+        /// <remark>
+        /// Use int as key for convenient use of StreamReader
+        /// </remark>
+        private IReadOnlyDictionary<char, int> ReverseCodePage;
 
-        private const byte HIGHEST_BIT_MASK = 0b10000000;
+        private int Buffer;
 
-        public StreamBitReader(Stream underlyingStream)
+        private static IEnumerable<char> EnumerateStream(Stream stream)
+        {
+            var reader = new StreamReader(stream);
+            var @char = reader.Read();
+            while (@char >= 0)
+            {
+                yield return Convert.ToChar(@char);
+                @char = reader.Read();
+            }
+        }
+
+        public StreamBitReader(Stream underlyingStream, IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar):
+            this(EnumerateStream(underlyingStream), reverseCodePage, bitsPerChar)
+        {
+
+        }
+
+        public StreamBitReader(IEnumerable<char> underlyingStream, IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
         {
             UnderlyingStream = underlyingStream ?? throw new ArgumentNullException(nameof(underlyingStream));
+            ReverseCodePage = reverseCodePage;
+            BitsPerChar = Convert.ToInt32(bitsPerChar);
+            SeekOrigin();
         }
 
-        public bool TryReadBool(out bool ret)
+        public IEnumerable<int> Bits
         {
-            if (Position != 8)
+            get
             {
-                ret = (Buffer & HIGHEST_BIT_MASK) == HIGHEST_BIT_MASK;
-                return true;
-            }
-            else
-            {
-                ret = default;
-                return false;
-            }
-        }
-
-        public bool TryRead(out byte ret)
-        {
-            if (Position != 8)
-            {
-                ret = Convert.ToByte((Buffer & HIGHEST_BIT_MASK) >> 7);
-                return true;
-            }
-            else
-            {
-                ret = default;
-                return false;
-            }
-        }
-
-        private void Advance()
-        {
-            switch(Position)
-            {
-                case 8:
-                    return;
-                case 7:
-                    var newBuffer = UnderlyingStream.ReadByte();
-                    if (newBuffer == -1)
+                foreach(var ch in UnderlyingStream)
+                {
+                    var buffer = ReverseCodePage[ch];
+                    for(int i = BitsPerChar - 1; i >= 0; --i)
                     {
-                        Position = 8;
+                        yield return (buffer >> i) & 1;
                     }
-                    else
-                    {
-                        Buffer = (byte)newBuffer;
-                        Position = 0;
-                    }
-                    break;
-                default:
-                    ++Position;
-                    Buffer <<= 1;
-                    break;
+                }
             }
         }
+
+        private IEnumerator<int> Enumerator;
+
+        public bool TryRead(out int ret, uint numBits = 1)
+        {
+            var tmp = 0;
+            for(int i = 0; i < numBits; ++i)
+            {
+                if(!Enumerator.MoveNext())
+                {
+                    ret = default;
+                    return false;
+                }
+                tmp |= Enumerator.Current << i;
+            }
+            ret = tmp;
+            return true;
+        }
+
+        public void SeekOrigin()
+        {
+            Enumerator = Bits.GetEnumerator();
+        }
+
+        //private bool DoTryRead(out int ret)
+        //{
+        //    if (!EndOfStream)
+        //    {
+        //        ret = (Buffer >> BitPosition) & 0x1;
+        //        Advance();
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        ret = default;
+        //        return false;
+        //    }
+        //}
+
+        //public bool TryRead(out int ret, uint numBits = 1)
+        //{
+        //    var tmp = 0;
+        //    for(int i = 0; i < numBits; ++ i)
+        //    {
+        //        if(DoTryRead(out var nextBit))
+        //        {
+        //            tmp |= nextBit << i;
+        //        }
+        //        else
+        //        {
+        //            ret = default;
+        //            return false;
+        //        }
+        //    }
+        //    ret = tmp;
+        //    return true;
+        //}
+
+        //private void ReadOneChar()
+        //{
+        //    var charData = UnderlyingStream.Read();
+        //    if (charData == -1)
+        //    {
+        //        EndOfStream = true;
+        //    }
+        //    else
+        //    {
+        //        Buffer = ReverseCodePage[Convert.ToChar(charData)];
+        //        BitPosition = Convert.ToInt32(BitsPerChar - 1);
+        //    }
+        //}
+
+        //private void Advance()
+        //{
+        //    if(!EndOfStream)
+        //    {
+        //        if(0 == BitPosition)
+        //        {
+        //            ReadOneChar();
+        //        }
+        //        else
+        //        {
+        //            --BitPosition;
+ 
+        //        }
+        //    }
+        //}
     }
 }
