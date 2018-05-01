@@ -18,6 +18,13 @@ namespace Compression.LZString.CSharp
             {
                 yield break;
             }
+
+            /* 
+             * Note: 
+             * Local function is new in C# 7, save us some trouble to hand write a state class.
+             * Nested function is, however, trivial in JavaScript, same as generator.
+             */
+
             //Read bits from encoded stream
             IEnumerator<int> GetBits()
             {
@@ -30,35 +37,23 @@ namespace Compression.LZString.CSharp
                     }
                 }
             }
+
             var bits = GetBits();
 
-            bool TryRead(out int ret, uint numBits = 1)
+            int ReadBitsOrThrow(uint numBits)
             {
                 var tmp = 0;
                 for (int i = 0; i < numBits; ++i)
                 {
                     if (!bits.MoveNext())
                     {
-                        ret = default;
-                        return false;
+                        throw new EndOfStreamException();
                     }
                     tmp |= bits.Current << i;
                 }
-                ret = tmp;
-                return true;
+                return tmp;
             }
 
-            int ReadBitsOrThrow(uint numBits = 1)
-            {
-                if (TryRead(out var ret, numBits))
-                {
-                    return ret;
-                }
-                else
-                {
-                    throw new EndOfStreamException();
-                }
-            }
             var reverseDictionary = new Dictionary<int, string>()
             {
                 { Masks.Char8Bit, null},
@@ -79,8 +74,6 @@ namespace Compression.LZString.CSharp
             }
 
             var w = "";
-            // Local function is new in C# 7, save us some trouble to hand write a state class.
-            // Nested function is, however, trivial in JavaScript.
             bool ReadNextSegment(out string ret, out bool isCharEntry)
             {
                 var codePoint = ReadBitsOrThrow(codePointWidth);
