@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace Compression.LZString.CSharp
 {
@@ -9,14 +10,47 @@ namespace Compression.LZString.CSharp
     {
         private IReadOnlyDictionary<char, int> ReverseCodePage;
 
-        private uint BitsPerChar;
+        private int BitsPerChar;
 
         public IEnumerable<char> Decode(IEnumerable<char> inputStream)
         {
-            var bitReader = new StreamBitReader(inputStream, ReverseCodePage, BitsPerChar);
+            if((!inputStream?.Any()) ?? false)
+            {
+                yield break;
+            }
+            //Read bits from encoded stream
+            IEnumerator<int> GetBits()
+            {
+                foreach (var ch in inputStream)
+                {
+                    var buffer = ReverseCodePage[ch];
+                    for (int i = BitsPerChar - 1; i >= 0; --i)
+                    {
+                        yield return (buffer >> i) & 1;
+                    }
+                }
+            }
+            var bits = GetBits();
+
+            bool TryRead(out int ret, uint numBits = 1)
+            {
+                var tmp = 0;
+                for (int i = 0; i < numBits; ++i)
+                {
+                    if (!bits.MoveNext())
+                    {
+                        ret = default;
+                        return false;
+                    }
+                    tmp |= bits.Current << i;
+                }
+                ret = tmp;
+                return true;
+            }
+
             int ReadBitsOrThrow(uint numBits = 1)
             {
-                if (bitReader.TryRead(out var ret, numBits))
+                if (TryRead(out var ret, numBits))
                 {
                     return ret;
                 }
@@ -106,7 +140,7 @@ namespace Compression.LZString.CSharp
         public Decoder(IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
         {
             ReverseCodePage = reverseCodePage;
-            BitsPerChar = bitsPerChar;
+            BitsPerChar = Convert.ToInt32(bitsPerChar);
         }
     }
 }
