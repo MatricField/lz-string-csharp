@@ -5,13 +5,13 @@ using System.Text;
 
 namespace Compression.LZString.CSharp
 {
-    public class LZStringDecoder
+    public class Decoder
     {
         private IReadOnlyDictionary<char, int> ReverseCodePage;
 
         private uint BitsPerChar;
 
-        public void Decode(IEnumerable<char> inputStream, Stream outPutStream)
+        public IEnumerable<char> Decode(IEnumerable<char> inputStream)
         {
             var bitReader = new StreamBitReader(inputStream, ReverseCodePage, BitsPerChar);
             int ReadBitsOrThrow(uint numBits = 1)
@@ -27,9 +27,9 @@ namespace Compression.LZString.CSharp
             }
             var reverseDictionary = new Dictionary<int, string>()
             {
-                { LZStringMasks.Char8Bit, null},
-                { LZStringMasks.Char16Bit, null},
-                { LZStringMasks.EndOfStream, null}
+                { Masks.Char8Bit, null},
+                { Masks.Char16Bit, null},
+                { Masks.EndOfStream, null}
             };
             var codePointWidth = 2u; // width of code point in bits
             var dictionaryCapacity = 4u; // possible number of code points under current width, value = 2 ^ codePointWidth
@@ -44,23 +44,23 @@ namespace Compression.LZString.CSharp
                 }
             }
 
-            var outWriter = new StreamWriter(outPutStream);
-            outWriter.AutoFlush = true;
             var w = "";
+            // Local function is new in C# 7, save us some trouble to hand write a state class.
+            // Nested function is, however, trivial in JavaScript.
             bool ReadNextSegment(out string ret, out bool isCharEntry)
             {
                 var codePoint = ReadBitsOrThrow(codePointWidth);
                 switch (codePoint)
                 {
-                    case LZStringMasks.Char8Bit:
+                    case Masks.Char8Bit:
                         ret = Convert.ToChar(ReadBitsOrThrow(8)).ToString();
                         isCharEntry = true;
                         return true;
-                    case LZStringMasks.Char16Bit:
+                    case Masks.Char16Bit:
                         ret = Convert.ToChar(ReadBitsOrThrow(16)).ToString();
                         isCharEntry = true;
                         return true;
-                    case LZStringMasks.EndOfStream:
+                    case Masks.EndOfStream:
                         ret = default;
                         isCharEntry = default;
                         return false;
@@ -84,12 +84,12 @@ namespace Compression.LZString.CSharp
 
             if(ReadNextSegment(out w, out var _))
             {
-                outWriter.Write(w);
+                foreach (var c in w) yield return c;
                 AddToDictionary(w);
             }
             else
             {
-                return;
+                yield break;
             }
             while(ReadNextSegment(out var entry, out var isCharEntry))
             {
@@ -97,13 +97,13 @@ namespace Compression.LZString.CSharp
                 {
                     AddToDictionary(entry);
                 }
-                outWriter.Write(entry);
+                foreach (var c in entry) yield return c;
                 AddToDictionary(w + entry[0]);
                 w = entry;
             }
         }
 
-        public LZStringDecoder(IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
+        public Decoder(IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
         {
             ReverseCodePage = reverseCodePage;
             BitsPerChar = bitsPerChar;

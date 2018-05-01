@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Compression.LZString.CSharp
 {
-    public static class LZStringPredefined
+    public static class Predefined
     {
         public const string KeyStrBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
@@ -28,9 +28,5 @@ namespace Compression.LZString.CSharp
                 return tmp;
             }
         }
-
-        public static LZStringDecoder GetDecoder(string alphabet, uint bitsPerChar) => new LZStringDecoder(GetReverseCodePage(alphabet), bitsPerChar);
-
-        public static LZStringDecoder Base64Decoder { get; } = GetDecoder(KeyStrBase64, 6);
     }
 }

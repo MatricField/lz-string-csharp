@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="LZString.cs.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="LZString.cs.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.10.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compression.LZString.CSharp\Compression.LZString.CSharp.csproj" />
+    <ProjectReference Include="..\LZString\LZString.csproj" />
+  </ItemGroup>
+
+</Project>
