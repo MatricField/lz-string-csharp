@@ -10,9 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="LZString.cs.txt">
+    <Content Include="LZString.cs.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Compile>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

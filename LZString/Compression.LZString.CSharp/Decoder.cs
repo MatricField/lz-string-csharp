@@ -95,7 +95,7 @@ namespace Compression.LZString.CSharp
                         isCharEntry = false;
                         if (reverseDictionary.TryGetValue(codePoint, out ret))
                         {
-                            return true;
+                            return null != ret ? true : throw new InvalidDataException();
                         }
                         else if (codePoint == reverseDictionary.Count)
                         {
