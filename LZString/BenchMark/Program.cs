@@ -27,6 +27,8 @@ namespace BenchMark
     {
         static void Main(string[] args)
         {
+            string Compressed = LZOld.compressToBase64(File.ReadAllText("LZString.cs.txt"));
+            var decompressed = new string(LZNew.Base64Decoder.Decode(Compressed).ToArray());
             BenchmarkRunner.Run<MyBenchMark>();
         }
     }

@@ -6,53 +6,20 @@ using System.Linq;
 
 namespace Compression.LZString.CSharp
 {
-    public class Decoder
+    public sealed class Decoder
     {
-        private IReadOnlyDictionary<char, int> ReverseCodePage;
+        public IReadOnlyDictionary<char, int> ReverseCodePage { get; }
 
-        private int BitsPerChar;
+        public int BitsPerChar { get; }
 
-        public IEnumerable<char> Decode(IEnumerable<char> inputStream)
+        public string Decode(string inputStream)
         {
-            if((!inputStream?.Any()) ?? false)
+            if(string.IsNullOrEmpty(inputStream))
             {
-                yield break;
+                return inputStream;
             }
 
-            /* 
-             * Note: 
-             * Local function is new in C# 7, save us some trouble to hand write a state class.
-             * Nested function is, however, trivial in JavaScript, same as generator.
-             */
-
-            //Read bits from encoded stream
-            IEnumerator<int> GetBits()
-            {
-                foreach (var ch in inputStream)
-                {
-                    var buffer = ReverseCodePage[ch];
-                    for (int i = BitsPerChar - 1; i >= 0; --i)
-                    {
-                        yield return (buffer >> i) & 1;
-                    }
-                }
-            }
-
-            var bits = GetBits();
-
-            int ReadBitsOrThrow(uint numBits)
-            {
-                var tmp = 0;
-                for (int i = 0; i < numBits; ++i)
-                {
-                    if (!bits.MoveNext())
-                    {
-                        throw new EndOfStreamException();
-                    }
-                    tmp |= bits.Current << i;
-                }
-                return tmp;
-            }
+            var bitReader = new BitReader(inputStream, ReverseCodePage, BitsPerChar);
 
             var reverseDictionary = new Dictionary<int, string>()
             {
@@ -74,17 +41,18 @@ namespace Compression.LZString.CSharp
             }
 
             var w = "";
+            var result = new StringBuilder();
             bool ReadNextSegment(out string ret, out bool isCharEntry)
             {
-                var codePoint = ReadBitsOrThrow(codePointWidth);
+                var codePoint = bitReader.ReadBits(codePointWidth);
                 switch (codePoint)
                 {
                     case Masks.Char8Bit:
-                        ret = Convert.ToChar(ReadBitsOrThrow(8)).ToString();
+                        ret = Convert.ToChar(bitReader.ReadBits(8)).ToString();
                         isCharEntry = true;
                         return true;
                     case Masks.Char16Bit:
-                        ret = Convert.ToChar(ReadBitsOrThrow(16)).ToString();
+                        ret = Convert.ToChar(bitReader.ReadBits(16)).ToString();
                         isCharEntry = true;
                         return true;
                     case Masks.EndOfStream:
@@ -111,23 +79,25 @@ namespace Compression.LZString.CSharp
 
             if(ReadNextSegment(out w, out var _))
             {
-                foreach (var c in w) yield return c;
+                result.Append(w);
                 AddToDictionary(w);
             }
             else
             {
-                yield break;
+                return "";
             }
+
             while(ReadNextSegment(out var entry, out var isCharEntry))
             {
                 if(isCharEntry)
                 {
                     AddToDictionary(entry);
                 }
-                foreach (var c in entry) yield return c;
+                result.Append(entry);
                 AddToDictionary(w + entry[0]);
                 w = entry;
             }
+            return result.ToString();
         }
 
         public Decoder(IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
