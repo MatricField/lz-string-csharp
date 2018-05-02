@@ -19,7 +19,7 @@ namespace Compression.LZString.CSharp
                 return inputStream;
             }
 
-            var bitReader = new BitReader(inputStream, ReverseCodePage, BitsPerChar);
+            var bitReader = new BitReader(inputStream, this);
 
             var reverseDictionary = new Dictionary<int, string>()
             {

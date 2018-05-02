@@ -16,12 +16,12 @@ namespace Compression.LZString.CSharp
 
         private int BitsInBufferMax;
 
-        public BitReader(string input, IReadOnlyDictionary<char, int> reverseDict, int bitsPerChar)
+        public BitReader(string input, Decoder decoder)
         {
             var rawData = new int[input.Length];
-            BitsInBufferMax = bitsPerChar;
-            var lookUpTable = BitReversalTable.Get(bitsPerChar);
-            Parallel.For(0, input.Length, (i) => rawData[i] = lookUpTable[reverseDict[input[i]]]);
+            BitsInBufferMax = decoder.BitsPerChar;
+            var lookUpTable = BitReversalTable.Get(decoder.BitsPerChar);
+            Parallel.For(0, input.Length, (i) => rawData[i] = lookUpTable[decoder.ReverseCodePage[input[i]]]);
             RawData = ((IEnumerable<int>)rawData).GetEnumerator();
         }
 
