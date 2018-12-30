@@ -1,3 +1,9 @@
+# Note
+
+Code has been migrated to [the new repo](http://github.com/MatricField/LZStringNet) as it has been completely rewritten.
+
+This repo is archived for record.
+
 # lz-string-csharp
 C# Implementation of the [lz-string javascript library](http://pieroxy.net/blog/pages/lz-string/index.html)
 
