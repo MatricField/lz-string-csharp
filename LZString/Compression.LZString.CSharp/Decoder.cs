@@ -8,18 +8,19 @@ namespace Compression.LZString.CSharp
 {
     public sealed class Decoder
     {
-        public IReadOnlyDictionary<char, int> ReverseCodePage { get; }
-
-        public int BitsPerChar { get; }
+        public DataEncoding Encoding { get; }
 
         public string Decode(string inputStream)
         {
-            if(string.IsNullOrEmpty(inputStream))
+            switch(inputStream)
             {
-                return inputStream;
+                case null:
+                    return "";
+                case "":
+                    return null;
             }
 
-            var bitReader = new BitReader(inputStream, this);
+            var bitReader = new BitReader(inputStream, Encoding);
 
             var reverseDictionary = new Dictionary<int, string>()
             {
@@ -77,33 +78,29 @@ namespace Compression.LZString.CSharp
                 }
             }
 
-            if(ReadNextSegment(out w, out var _))
+            //Main logic
+            if (ReadNextSegment(out w, out var _))
             {
                 result.Append(w);
                 AddToDictionary(w);
-            }
-            else
-            {
-                return "";
-            }
 
-            while(ReadNextSegment(out var entry, out var isCharEntry))
-            {
-                if(isCharEntry)
+                while (ReadNextSegment(out var entry, out var isCharEntry))
                 {
-                    AddToDictionary(entry);
+                    if (isCharEntry)
+                    {
+                        AddToDictionary(entry);
+                    }
+                    result.Append(entry);
+                    AddToDictionary(w + entry[0]);
+                    w = entry;
                 }
-                result.Append(entry);
-                AddToDictionary(w + entry[0]);
-                w = entry;
             }
             return result.ToString();
         }
 
-        public Decoder(IReadOnlyDictionary<char, int> reverseCodePage, uint bitsPerChar)
+        public Decoder(DataEncoding encoding)
         {
-            ReverseCodePage = reverseCodePage;
-            BitsPerChar = Convert.ToInt32(bitsPerChar);
+            Encoding = encoding;
         }
     }
 }

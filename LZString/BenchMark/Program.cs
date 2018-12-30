@@ -20,7 +20,7 @@ namespace BenchMark
         public string OldLZString() => LZOld.decompressFromBase64(Compressed);
 
         [Benchmark]
-        public string Reimplement() => LZNew.Base64Decoder.Decode(Compressed);
+        public string Reimplement() => LZNew.DecompressFromBase64(Compressed);
     }
 
     class Program

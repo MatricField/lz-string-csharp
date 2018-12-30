@@ -6,8 +6,13 @@ namespace Compression.LZString.CSharp
 {
     public static class LZString
     {
-        public static Decoder GetDecoder(string alphabet, uint bitsPerChar) => new Decoder(Predefined.GetReverseCodePage(alphabet), bitsPerChar);
+        public static string DecompressFromBase64(string input) =>
+            Decompress(input, Predefined.Base64Encoding);
 
-        public static Decoder Base64Decoder { get; } = GetDecoder(Predefined.KeyStrBase64, 6);
+        private static string Decompress(string input, DataEncoding encoding)
+        {
+            var decoder = new Decoder(encoding);
+            return decoder.Decode(input);
+        }
     }
 }

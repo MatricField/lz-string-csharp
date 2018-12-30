@@ -11,5 +11,5 @@ type LZNew = Compression.LZString.CSharp.LZString
 [<Property()>]
 let ``can decompress from base64`` (raw: string)=
     let compressed = LZOld.compressToBase64(raw)
-    let decompressed = LZNew.Base64Decoder.Decode(compressed)
-    Assert.Equal((if null = raw then "" else raw), decompressed)
+    let decompressed = LZNew.DecompressFromBase64(compressed)
+    Assert.Equal(raw, decompressed)
